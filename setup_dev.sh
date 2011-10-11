@@ -3,14 +3,14 @@
 
 #database
 databaseserver='localhost'
-databaseuser='root'
-databasepassword='Elzar1'
+databaseuser='yourdatabaseuser'
+databasepassword='yourpassword'
 
 #your git repository
-myrepo=git@github.com:andyjdavis/moodle.git
+myrepo=git@github.com:yourgitrepo/moodle.git
 
 #code directory
-moodledir=/home/andrew/Desktop/code/moodle
+moodledir=/home/yourusername/Desktop/code/moodle
 moodledirdev=$moodledir/dev
 moodledirint=$moodledir/int
 
@@ -18,7 +18,7 @@ moodledirint=$moodledir/int
 #Note: code and data directories cannot have the same parent
 #ie /blah/moodlecode and /blah/moodledata or is_dataroot_insecure() will report that your data directory is within your code directory
 #and prevent installation
-datadir=/home/andrew/Desktop/tempdata/moodledata
+datadir=/home/yourusername/Desktop/tempdata/moodledata
 datadirdev=$datadir/dev
 datadirint=$datadir/int
 
