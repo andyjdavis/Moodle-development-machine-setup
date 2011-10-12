@@ -1,16 +1,19 @@
 #-----------------------------------------------------
 #configuration options
+#this script currently assumes the existence of /home/YOUR_NAME/Desktop/tempdata/ and /home/YOUR_NAME/Desktop/code
 
 #database
 databaseserver='localhost'
-databaseuser='yourdatabaseuser'
-databasepassword='yourpassword'
+databaseuser='YOUR_DATABASE_USER'
+databasepassword='YOUR_PASSWORD'
 
 #your git repository
-myrepo=git@github.com:yourgitrepo/moodle.git
+myrepo=git@github.com:YOUR_NAME/moodle.git
+# OR
+#myrepo=https://YOUR_NAME@github.com/YOUR_NAME/moodle.git
 
 #code directory
-moodledir=/home/yourusername/Desktop/code/moodle
+moodledir=/home/YOUR_NAME/Desktop/code/moodle
 moodledirdev=$moodledir/dev
 moodledirint=$moodledir/int
 
@@ -18,7 +21,7 @@ moodledirint=$moodledir/int
 #Note: code and data directories cannot have the same parent
 #ie /blah/moodlecode and /blah/moodledata or is_dataroot_insecure() will report that your data directory is within your code directory
 #and prevent installation
-datadir=/home/yourusername/Desktop/tempdata/moodledata
+datadir=/home/YOUR_NAME/Desktop/tempdata/moodledata
 datadirdev=$datadir/dev
 datadirint=$datadir/int
 
@@ -27,8 +30,8 @@ webdirdev=$webdir/dev
 webdirint=$webdir/int
 
 #moodle config
-moodlepassword=password
 moodleuser=admin
+moodlepassword=password
 
 #used for directory and database schema names
 moodle19=moodle19stable
@@ -38,6 +41,13 @@ master=master
 
 #a html page containing links to all of your moodles will be created
 indexfilelocation='/var/www/index.php'
+
+#-----------------------------------------------------
+# Check prerequisites are installed (apache and mysql including the curl php extension)
+#-----------------------------------------------------
+sudo apt-get install apache2 php5-mysql libapache2-mod-php5 mysql-server mysql-query-browser php5-curl
+sudo /etc/init.d/mysql restart
+sudo apache2ctl graceful
 
 #-----------------------------------------------------
 # and now the actual setup script
