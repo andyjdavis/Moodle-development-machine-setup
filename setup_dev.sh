@@ -1,51 +1,54 @@
 #-----------------------------------------------------
+# This is an imperfect but possibly useful script written by Andrew Davis (andrew@moodle.com)
+# It is distributed without any sort of warranty. Use it at your own risk.
+# Modify it and redistribute it however you see fit.
+#
+# This script should set up 3 development and 3 integration testing repositories.
+# This is to allow me to:
+# 1) Develop in master then cherry-pick commits into different versions.
+# 2) Perform testing of newly integrated commits in all currently supported versions.
+#-----------------------------------------------------
 #configuration options
-#this script currently assumes the existence of /home/YOUR_NAME/Desktop/tempdata/ and /home/YOUR_NAME/Desktop/code
 
 #database
 databaseserver='localhost'
-databaseuser='YOUR_DATABASE_USER'
-databasepassword='YOUR_PASSWORD'
+databaseuser='root'
+databasepassword='password'
 
 #your git repository
-myrepo=git@github.com:YOUR_NAME/moodle.git
+#myrepo=git@github.com:YOUR_NAME/moodle.git
 # OR
-#myrepo=https://YOUR_NAME@github.com/YOUR_NAME/moodle.git
+myrepo=https://github.com/andyjdavis/moodle.git # Point this at your repo, not mine.
+
+localusername=andrew #used to construct the path to your home directory
 
 #code directory
-moodledir=/home/YOUR_NAME/Desktop/code/moodle
-moodledirdev=$moodledir/dev
-moodledirint=$moodledir/int
+codedir=/home/$localusername/Desktop/code
+moodledir=$codedir/moodle
 
 #data directory
 #Note: code and data directories cannot have the same parent
 #ie /blah/moodlecode and /blah/moodledata or is_dataroot_insecure() will report that your data directory is within your code directory
 #and prevent installation
-datadir=/home/YOUR_NAME/Desktop/tempdata/moodledata
-datadirdev=$datadir/dev
-datadirint=$datadir/int
+tempdir=/home/$localusername/Desktop/tempdata
+datadir=$tempdir/moodledata
 
 webdir=/var/www/moodle
-webdirdev=$webdir/dev
-webdirint=$webdir/int
 
 #moodle config
 moodleuser=admin
-moodlepassword=password
+moodlepassword=Password1! #a password that meets Moodle's default password policy
 
-#used for directory and database schema names
-moodle19=moodle19stable
-moodle20=moodle20stable
-moodle21=moodle21stable
-master=master
-
-#a html page containing links to all of your moodles will be created
+#A html page containing links to all of your moodles will be created
 indexfilelocation='/var/www/index.php'
 
 #-----------------------------------------------------
 # Check prerequisites are installed (apache and mysql including the curl php extension)
 #-----------------------------------------------------
-sudo apt-get install apache2 php5-mysql libapache2-mod-php5 mysql-server mysql-query-browser php5-curl
+
+# While this checks that mysql is installed you should probably install it first beforehand
+# so that you know the database login details (above).
+sudo apt-get install apache2 php5-mysql libapache2-mod-php5 mysql-server mysql-workbench php5-curl
 sudo /etc/init.d/mysql restart
 sudo apache2ctl graceful
 
@@ -53,136 +56,78 @@ sudo apache2ctl graceful
 # and now the actual setup script
 #-----------------------------------------------------
 mkdir $webdir
-mkdir $webdirdev
-mkdir $webdirint
+mkdir $webdir/dev
+mkdir $webdir/int
 
+mkdir $codedir
 mkdir $moodledir
-mkdir $moodledirdev
-mkdir $moodledirint
+mkdir $moodledir/dev
+mkdir $moodledir/int
 
+mkdir $tempdir
 mkdir $datadir
-mkdir $datadirdev
-mkdir $datadirdev/$moodle19
-mkdir $datadirdev/$moodle20
-mkdir $datadirdev/$moodle21
-mkdir $datadirdev/$master
+mkdir $datadir/dev
+mkdir $datadir/int
 
-mkdir $datadirint
-mkdir $datadirint/$moodle19
-mkdir $datadirint/$moodle20
-mkdir $datadirint/$moodle21
-mkdir $datadirint/$master
+#Set all file permissions really permissive. This is NOT suitable for a production machine
+chmod -R 777 $datadir
+chmod -R 777 $moodledir
 
-echo "----------------------dev 1.9 stable----------------------"
-cd $moodledirdev
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_dev_$moodle19;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_dev_$moodle19 CHARACTER SET utf8;"
-git clone $myrepo $moodle19
-ln -s $moodledirdev/$moodle19 $webdirdev/$moodle19
-cd $moodledirdev/$moodle19
-git config core.filemode false #ignore file permission changes
-git remote add upstream git://git.moodle.org/moodle.git
-git checkout MOODLE_19_STABLE
-git pull upstream MOODLE_19_STABLE
-#command line installation not possible in 1.9. Visit http://localhost/moodle/dev/moodle19stable to complete installation
-#php admin/cli/install.php --lang=en --wwwroot=$webdirdev/$moodle19 --dataroot=$datadir/dev/$moodle19 --dbtype=mysqli --dbhost=$databaseserver --dbname=$moodle19 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="site fullname" --shortname="site shortname" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+installmoodle()
+{
+	#$1 == 'dev' or 'int'
+	#$2 == the moodle branch name ie 'MOODLE_24_STABLE' or 'master'
+	#$3 == the remote repository name ie 'upstream' or 'integration'
 
-echo "----------------------dev 2.0 stable----------------------"
-cd $moodledirdev
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_dev_$moodle20;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_dev_$moodle20 CHARACTER SET utf8;"
-git clone $myrepo $moodle20
-ln -s $moodledirdev/$moodle20 $webdirdev/$moodle20
-cd $moodledirdev/$moodle20
-git config core.filemode false #ignore file permission changes
-git remote add upstream git://git.moodle.org/moodle.git
-git checkout MOODLE_20_STABLE
-git pull upstream MOODLE_20_STABLE
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/dev/$moodle20 --dataroot=$datadir/dev/$moodle20 --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_dev_$moodle20 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="2.0 stable dev fullname" --shortname="2.0 dev" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+	echo "----------------------$1 $2----------------------"
+	echo 'creating directories'
+	mkdir $datadir/$1/$2
+	cd $moodledir/$1
 
-echo "----------------------dev 2.1 stable----------------------"
-cd $moodledirdev
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_dev_$moodle21;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_dev_$moodle21 CHARACTER SET utf8;"
-git clone $myrepo $moodle21
-ln -s $moodledirdev/$moodle21 $webdirdev/$moodle21
-cd $moodledirdev/$moodle21
-git config core.filemode false #ignore file permission changes
-git remote add upstream git://git.moodle.org/moodle.git
-git checkout MOODLE_21_STABLE
-git pull upstream MOODLE_21_STABLE
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/dev/$moodle21 --dataroot=$datadir/dev/$moodle21 --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_dev_$moodle21 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="2.1 stable dev fullname" --shortname="2.1 dev" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+    echo 'setting up mysql database'
+	mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_"$1"_"$2";"
+	mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_"$1"_"$2" CHARACTER SET utf8;"
 
-echo "----------------------dev master---------------------------"
-cd $moodledirdev
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_dev_$master;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_dev_$master CHARACTER SET utf8;"
-git clone $myrepo $master
-ln -s $moodledirdev/$master $webdirdev/$master
-cd $moodledirdev/$master
-git config core.filemode false #ignore file permission changes
-git remote add upstream git://git.moodle.org/moodle.git
-git checkout master
-git pull upstream master
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/dev/$master --dataroot=$datadir/dev/$master --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_dev_$master --dbuser=$databaseuser --dbpass=$databasepassword --fullname="master dev fullname" --shortname="master dev" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+    if [ "$1$2" = "devmaster" ] ; then
+        echo 'cloning the git repository for dev master'
+        git clone $myrepo $2
+    else
+        echo "copying $moodledir/dev/master to $moodledir/$1/$2 rather than cloning"
+        cp -R $moodledir/dev/master $moodledir/$1/$2
+        rm $moodledir/$1/$2/config.php #delete config.php
+	fi
 
-#and now another installation of each branch for integration testing
+	echo 'creating symlink to code in the web dir'
+	ln -s $moodledir/$1/$2 $webdir/$1/$2
+	cd $moodledir/$1/$2
 
-echo "----------------------int 1.9 stable----------------------"
-cd $moodledirint
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_int_$moodle19;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_int_$moodle19 CHARACTER SET utf8;"
-git clone $myrepo $moodle19
-ln -s $moodledirint/$moodle19 $webdirint/$moodle19
-cd $moodle19
-git config core.filemode false #ignore file permission changes
-git remote add integration git://git.moodle.org/integration.git
-git checkout MOODLE_19_STABLE
-git pull integration MOODLE_19_STABLE
-#command line installation not possible in 1.9. Visit http://localhost/moodle/int/moodle19stable to complete installation
-#php admin/cli/install.php --lang=en --wwwroot=$webdirint/$moodle19 --dataroot=$datadir/int/$moodle19 --dbtype=mysqli --dbhost=$databaseserver --dbname=$moodle19 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="1.0 stable int fullname" --shortname="1.9 int" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+    echo 'altering git config and adding the remote repository'
+	git config core.filemode false #ignore file permission changes
+	#we are adding the remote repos multiple times but git seems to be smart enough to ignore the extra adds
+	git remote add $3 $4 #add the upstream or integration repository
 
-echo "----------------------int 2.0 stable----------------------"
-cd $moodledirint
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_int_$moodle20;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_int_$moodle20 CHARACTER SET utf8;"
-git clone $myrepo $moodle20
-ln -s $moodledirint/$moodle20 $webdirint/$moodle20
-cd $moodledirint/$moodle20
-git config core.filemode false #ignore file permission changes
-git remote add integration git://git.moodle.org/integration.git
-git checkout MOODLE_20_STABLE
-git pull integration MOODLE_20_STABLE
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/int/$moodle20 --dataroot=$datadir/int/$moodle20 --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_int_$moodle20 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="2.0 stable int fullname" --shortname="2.0 int" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+    echo 'fetching from '$3' to get branch info'
+    git fetch $3
+    echo 'check out '$3'/'$2
+	git checkout -b $2 $3/$2
+	echo 'pull to make sure we have the absolute latest and greatest'
+	git pull $3 $2
 
-echo "----------------------int 2.1 stable----------------------"
-cd $moodledirint
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_int_$moodle21;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_int_$moodle21 CHARACTER SET utf8;"
-git clone $myrepo $moodle21
-ln -s $moodledirint/$moodle21 $webdirint/$moodle21
-cd $moodledirint/$moodle21
-git config core.filemode false #ignore file permission changes
-git remote add integration git://git.moodle.org/integration.git
-git checkout MOODLE_21_STABLE
-git pull integration MOODLE_21_STABLE
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/int/$moodle21 --dataroot=$datadir/int/$moodle21 --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_int_$moodle21 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="2.1 stable int fullname" --shortname="2.1 int" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+    # run Moodle's command line installer
+	php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/$1/$2 --dataroot=$datadir/$1/$2 --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_$1"_"$2 --dbuser=$databaseuser --dbpass=$databasepassword --fullname="$2 $1 fullname" --shortname="$2 $1" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+}
 
-echo "----------------------int master---------------------------"
-cd $moodledirint
-mysql --user=$databaseuser --password=$databasepassword -e "create database moodle_int_$master;"
-mysql --user=$databaseuser --password=$databasepassword -e "ALTER DATABASE moodle_int_$master CHARACTER SET utf8;"
-git clone $myrepo $master
-ln -s $moodledirint/$master $webdirint/$master
-cd $moodledirint/$master
-git config core.filemode false #ignore file permission changes
-git remote add integration git://git.moodle.org/integration.git
-git checkout master
-git pull integration master
-php ./admin/cli/install.php --lang=en --wwwroot=http://localhost/moodle/int/$master --dataroot=$datadir/int/$master --dbtype=mysqli --dbhost=$databaseserver --dbname=moodle_int_$master --dbuser=$databaseuser --dbpass=$databasepassword --fullname="master int fullname" --shortname="master int" --adminuser=$moodleuser --adminpass=$moodlepassword --non-interactive --agree-license --allow-unstable
+# Make sure to always do dev master first
+# The other repositories will be copied from it to avoid repeated slow git clone operations
+installmoodle "dev" "master" "upstream" "git://git.moodle.org/moodle.git"
+installmoodle "dev" "MOODLE_24_STABLE" "upstream" "git://git.moodle.org/moodle.git"
+installmoodle "dev" "MOODLE_23_STABLE" "upstream" "git://git.moodle.org/moodle.git"
 
+installmoodle "int" "master" "integration" "git://git.moodle.org/integration.git"
+installmoodle "int" "MOODLE_24_STABLE" "integration" "git://git.moodle.org/integration.git"
+installmoodle "int" "MOODLE_23_STABLE" "integration" "git://git.moodle.org/integration.git"
 
-#finally set all file permissions really permissive. This is NOT suitable for a production machine
+#Set all file permissions really permissive. This is NOT suitable for a production server
 chmod -R 777 $datadir
 chmod -R 777 $moodledir
 
@@ -190,16 +135,13 @@ chmod -R 777 $moodledir
 echo '<html><body>' > $indexfilelocation
 
 echo '<h1>dev</h1>' >> $indexfilelocation
-echo "<p><a href='moodle/dev/$moodle19'>$moodle19</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/dev/$moodle20'>$moodle20</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/dev/$moodle21'>$moodle21</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/dev/$master'>$master</a></p>" >> $indexfilelocation
+echo "<p><a href='moodle/dev/MOODLE_23_STABLE'>MOODLE_23_STABLE</a></p>" >> $indexfilelocation
+echo "<p><a href='moodle/dev/MOODLE_24_STABLE'>MOODLE_24_STABLE</a></p>" >> $indexfilelocation
+echo "<p><a href='moodle/dev/master'>master</a></p>" >> $indexfilelocation
 
-echo '<h1>int</h1>' >> $indexfilelocation
-echo "<p><a href='moodle/int/$moodle19'>$moodle19</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/int/$moodle20'>$moodle20</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/int/$moodle21'>$moodle21</a></p>" >> $indexfilelocation
-echo "<p><a href='moodle/int/$master'>$master</a></p>" >> $indexfilelocation
+echo '<h1>integration</h1>' >> $indexfilelocation
+echo "<p><a href='moodle/int/MOODLE_23_STABLE'>MOODLE_23_STABLE</a></p>" >> $indexfilelocation
+echo "<p><a href='moodle/int/MOODLE_24_STABLE'>MOODLE_24_STABLE</a></p>" >> $indexfilelocation
+echo "<p><a href='moodle/int/master'>master</a></p>" >> $indexfilelocation
 
 echo '</body></html>' >> $indexfilelocation
-
